@@ -9,6 +9,8 @@ class GLES3HeaderStruct:
     def __init__(self):
         self.vertex_lines = []
         self.fragment_lines = []
+        self.tess_control_lines = []
+        self.tess_eval_lines = []
         self.raygen_lines = []
         self.any_hit_lines = []
         self.closest_hit_lines = []
@@ -28,6 +30,8 @@ class GLES3HeaderStruct:
         self.reading = ""
         self.line_offset = 0
         self.vertex_offset = 0
+        self.tess_control_offset = 0
+        self.tess_eval_offset = 0
         self.fragment_offset = 0
         self.raygen_offset = 0
         self.any_hit_offset = 0
@@ -97,6 +101,20 @@ def include_file_in_gles3_header(filename: str, header_data: GLES3HeaderStruct, 
                 header_data.fragment_offset = header_data.line_offset
                 continue
 
+            if line.find("#[tesselation_control]") != -1:
+                header_data.reading = "tesselation_control"
+                line = fs.readline()
+                header_data.line_offset += 1
+                header_data.tess_control_offset = header_data.line_offset
+                continue
+
+            if line.find("#[tesselation_evaluation]") != -1:
+                header_data.reading = "tesselation_evaluation"
+                line = fs.readline()
+                header_data.line_offset += 1
+                header_data.tess_eval_offset = header_data.line_offset
+                continue
+
             if line.find("#[raygen]") != -1:
                 header_data.reading = "raygen"
                 line = fs.readline()
@@ -142,6 +160,14 @@ def include_file_in_gles3_header(filename: str, header_data: GLES3HeaderStruct, 
                         print_error(f'In file "{filename}": #include "{includeline}" could not be found!"')
                 elif included_file not in header_data.fragment_included_files and header_data.reading == "fragment":
                     header_data.fragment_included_files += [included_file]
+                    if include_file_in_gles3_header(included_file, header_data, depth + 1) is None:
+                        print_error(f'In file "{filename}": #include "{includeline}" could not be found!"')
+                elif included_file not in header_data.tess_control_included_files and header_data.reading == "tesselation_control":
+                    header_data.tess_control_lines += [line]
+                    if include_file_in_gles3_header(included_file, header_data, depth + 1) is None:
+                        print_error(f'In file "{filename}": #include "{includeline}" could not be found!"')
+                elif included_file not in header_data.tess_eval_included_files and header_data.reading == "tesselation_evaluation":
+                    header_data.tess_eval_lines += [line]
                     if include_file_in_gles3_header(included_file, header_data, depth + 1) is None:
                         print_error(f'In file "{filename}": #include "{includeline}" could not be found!"')
 
@@ -226,6 +252,10 @@ def include_file_in_gles3_header(filename: str, header_data: GLES3HeaderStruct, 
                 header_data.vertex_lines += [line]
             if header_data.reading == "fragment":
                 header_data.fragment_lines += [line]
+            if header_data.reading == "tesselation_control":
+                header_data.tess_control_lines += [line]
+            if header_data.reading == "tesselation_evaluation":
+                header_data.tess_eval_lines += [line]
             if header_data.reading == "raygen":
                 header_data.raygen_lines += [line]
             if header_data.reading == "any_hit":
@@ -560,7 +590,15 @@ protected:
 {to_raw_cstring(header_data.fragment_lines)}
 		}};
 
-		_setup(_vertex_code, _fragment_code, "{out_file_class}",
+        static const char _tess_control_code[] = {{
+{to_raw_cstring(header_data.tess_control_lines)}
+        }};
+
+        static const char _tess_eval_code[] = {{
+{to_raw_cstring(header_data.tess_eval_lines)}
+        }};
+
+		_setup(_vertex_code, _fragment_code, _tess_control_code, _tess_eval_code, "{out_file_class}",
 				{len(header_data.uniforms)}, _uniform_strings, {len(header_data.ubos)}, _ubo_pairs,
 				{len(header_data.feedbacks)}, _feedbacks, {len(header_data.texunits)}, _texunit_pairs,
 				{len(header_data.specialization_names)}, _spec_pairs, {variant_count}, _variant_defines);

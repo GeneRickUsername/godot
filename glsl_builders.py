@@ -9,6 +9,8 @@ class RDHeaderStruct:
     def __init__(self):
         self.vertex_lines = []
         self.fragment_lines = []
+        self.tess_control_lines = []
+        self.tess_eval_lines = []
         self.compute_lines = []
         self.raygen_lines = []
         self.any_hit_lines = []
@@ -18,6 +20,8 @@ class RDHeaderStruct:
 
         self.vertex_included_files = []
         self.fragment_included_files = []
+        self.tess_control_included_files = []
+        self.tess_eval_included_files = []
         self.compute_included_files = []
         self.raygen_included_files = []
         self.any_hit_included_files = []
@@ -29,6 +33,8 @@ class RDHeaderStruct:
         self.line_offset = 0
         self.vertex_offset = 0
         self.fragment_offset = 0
+        self.tess_control_offset = 0
+        self.tess_eval_offset = 0
         self.compute_offset = 0
         self.raygen_offset = 0
         self.any_hit_offset = 0
@@ -51,6 +57,20 @@ def include_file_in_rd_header(filename: str, header_data: RDHeaderStruct, depth:
                 line = fs.readline()
                 header_data.line_offset += 1
                 header_data.vertex_offset = header_data.line_offset
+                continue
+            
+            if line.find("#[tesselation_control]") != -1:
+                header_data.reading = "tesselation_control"
+                line = fs.readline()
+                header_data.line_offset += 1
+                header_data.tess_control_offset = header_data.line_offset
+                continue
+            
+            if line.find("#[tesselation_evaluation]") != -1:
+                header_data.reading = "tesselation_evaluation"
+                line = fs.readline()
+                header_data.line_offset += 1
+                header_data.tess_eval_offset = header_data.line_offset
                 continue
 
             if line.find("#[fragment]") != -1:
@@ -119,6 +139,14 @@ def include_file_in_rd_header(filename: str, header_data: RDHeaderStruct, depth:
                     header_data.fragment_included_files += [included_file]
                     if include_file_in_rd_header(included_file, header_data, depth + 1) is None:
                         print_error(f'In file "{filename}": #include "{includeline}" could not be found!"')
+                elif included_file not in header_data.tess_control_included_files and header_data.reading == "tesselation_control":
+                    header_data.tess_control_included_files += [included_file]
+                    if include_file_in_rd_header(included_file, header_data, depth + 1) is None:
+                        print_error(f'In file "{filename}": #include "{includeline}" could not be found!"')
+                elif included_file not in header_data.tess_eval_included_files and header_data.reading == "tesselation_evaluation":
+                    header_data.tess_eval_included_files += [included_file]
+                    if include_file_in_rd_header(included_file, header_data, depth + 1) is None:
+                        print_error(f'In file "{filename}": #include "{includeline}" could not be found!"')
                 elif included_file not in header_data.compute_included_files and header_data.reading == "compute":
                     header_data.compute_included_files += [included_file]
                     if include_file_in_rd_header(included_file, header_data, depth + 1) is None:
@@ -155,6 +183,10 @@ def include_file_in_rd_header(filename: str, header_data: RDHeaderStruct, depth:
 
             if header_data.reading == "vertex":
                 header_data.vertex_lines += [line]
+            if header_data.reading == "tesselation_control":
+                header_data.tess_control_lines += [line]
+            if header_data.reading == "tesselation_evaluation":
+                header_data.tess_eval_lines += [line]
             if header_data.reading == "fragment":
                 header_data.fragment_lines += [line]
             if header_data.reading == "compute":
@@ -220,24 +252,45 @@ public:
         elif header_data.compute_lines:
             file.write(f"""\
 		static const char *_vertex_code = nullptr;
+        static const char *_tess_control_code = nullptr;
+        static const char *_tess_eval_code = nullptr;
 		static const char *_fragment_code = nullptr;
 		static const char _compute_code[] = {{
 {to_raw_cstring(header_data.compute_lines)}
 		}};
-		setup(_vertex_code, _fragment_code, _compute_code, "{class_name}");
+		setup(_vertex_code, _fragment_code, _tess_control_code, _tess_eval_code, _compute_code, "{class_name}");
 """)
         else:
             file.write(f"""\
-		static const char _vertex_code[] = {{
+        static const char _vertex_code[] = {{
 {to_raw_cstring(header_data.vertex_lines)}
-		}};
-		static const char _fragment_code[] = {{
+        }};
+        static const char _fragment_code[] = {{
 {to_raw_cstring(header_data.fragment_lines)}
-		}};
-		static const char *_compute_code = nullptr;
-		setup(_vertex_code, _fragment_code, _compute_code, "{class_name}");
+        }};
 """)
+            # Safely handle optional tessellation
+            if header_data.tess_control_lines:
+                file.write(f"""\
+        static const char _tess_control_code[] = {{
+{to_raw_cstring(header_data.tess_control_lines)}
+        }};
+""")
+            else:
+                file.write("        static const char *_tess_control_code = nullptr;\n")
 
+            if header_data.tess_eval_lines:
+                file.write(f"""\
+        static const char _tess_eval_code[] = {{
+{to_raw_cstring(header_data.tess_eval_lines)}
+        }};
+""")
+            else:
+                file.write("        static const char *_tess_eval_code = nullptr;\n")
+            file.write(f"""\
+        static const char *_compute_code = nullptr;
+        setup(_vertex_code, _fragment_code, _tess_control_code, _tess_eval_code, _compute_code, "{class_name}");
+""")
         file.write("""\
 	}
 };

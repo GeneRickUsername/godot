@@ -74,6 +74,8 @@ private:
 		CharString vertex_globals;
 		CharString compute_globals;
 		CharString fragment_globals;
+		CharString tess_control_globals;
+		CharString tess_eval_globals;
 		CharString raygen_globals;
 		CharString any_hit_globals;
 		CharString closest_hit_globals;
@@ -118,6 +120,8 @@ private:
 				TYPE_MATERIAL_UNIFORMS,
 				TYPE_VERTEX_GLOBALS,
 				TYPE_FRAGMENT_GLOBALS,
+				TYPE_TESSELATION_CONTROL_GLOBALS,
+				TYPE_TESSELATION_EVALUATION_GLOBALS,
 				TYPE_COMPUTE_GLOBALS,
 				TYPE_RAYGEN_GLOBALS,
 				TYPE_ANY_HIT_GLOBALS,
@@ -159,6 +163,8 @@ private:
 	enum StageType {
 		STAGE_TYPE_VERTEX,
 		STAGE_TYPE_FRAGMENT,
+		STAGE_TYPE_TESSELATION_CONTROL,    // Add this
+		STAGE_TYPE_TESSELATION_EVALUATION, // Add this
 		STAGE_TYPE_COMPUTE,
 		STAGE_TYPE_RAYGEN,
 		STAGE_TYPE_ANY_HIT,
@@ -185,13 +191,13 @@ private:
 
 protected:
 	ShaderRD();
-	void setup(const char *p_vertex_code, const char *p_fragment_code, const char *p_compute_code, const char *p_name);
+	void setup(const char *p_vertex_code, const char *p_fragment_code, const char *p_tesselation_control_code, const char *p_tesselation_evaluation_code, const char *p_compute_code, const char *p_name);
 	void setup_raytracing(const char *p_raygen_code, const char *p_any_hit_code, const char *p_closest_hit_code, const char *p_miss_code, const char *p_intersection_code, const char *p_name);
 
 public:
 	RID version_create(bool p_embedded = true);
 
-	void version_set_code(RID p_version, const HashMap<String, String> &p_code, const String &p_uniforms, const String &p_vertex_globals, const String &p_fragment_globals, const Vector<String> &p_custom_defines);
+	void version_set_code(RID p_version, const HashMap<String, String> &p_code, const String &p_uniforms, const String &p_vertex_globals, const String &p_fragment_globals, const String &p_tess_control_globals, const String &p_tess_eval_globals, const Vector<String> &p_custom_defines);
 	void version_set_compute_code(RID p_version, const HashMap<String, String> &p_code, const String &p_uniforms, const String &p_compute_globals, const Vector<String> &p_custom_defines);
 	void version_set_raytracing_code(RID p_version, const HashMap<String, String> &p_code, const String &p_uniforms, const String &p_raygen_globals, const String &p_any_hit_globals, const String &p_closest_hit_globals, const String &p_miss_globals, const String &p_intersection_globals, const Vector<String> &p_custom_defines);
 

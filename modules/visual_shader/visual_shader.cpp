@@ -42,7 +42,7 @@
 #include "servers/rendering/shader_types.h"
 
 String make_unique_id(VisualShader::Type p_type, int p_id, const String &p_name) {
-	static const char *typepf[VisualShader::TYPE_MAX] = { "vtx", "frg", "lgt", "start", "process", "collide", "start_custom", "process_custom", "sky", "fog", "texture_blit" };
+	static const char *typepf[VisualShader::TYPE_MAX] = { "vtx", "frg", "tess_ctrl", "tess_eval", "lgt", "start", "process", "collide", "start_custom", "process_custom", "sky", "fog", "texture_blit" };
 	return p_name + "_" + String(typepf[p_type]) + "_" + itos(p_id);
 }
 
@@ -1715,6 +1715,8 @@ String VisualShader::validate_parameter_name(const String &p_name, const Ref<Vis
 static const char *type_string[VisualShader::TYPE_MAX] = {
 	"vertex",
 	"fragment",
+	"tesselation_control",
+	"tesselation_evaluation",
 	"light",
 	"start",
 	"process",
@@ -2792,7 +2794,7 @@ void VisualShader::_update_shader() const {
 		global_code += "stencil_mode " + stencil_mode + ";\n\n";
 	}
 
-	static const char *func_name[TYPE_MAX] = { "vertex", "fragment", "light", "start", "process", "collide", "start_custom", "process_custom", "sky", "fog", "blit" };
+	static const char *func_name[TYPE_MAX] = { "vertex", "fragment", "tesselation_control", "tesselation_evaluation", "light", "start", "process", "collide", "start_custom", "process_custom", "sky", "fog", "blit" };
 
 	String global_expressions;
 	HashSet<String> used_parameter_names;
@@ -3387,6 +3389,15 @@ const VisualShaderNodeInput::Port VisualShaderNodeInput::ports[] = {
 	{ Shader::MODE_SPATIAL, VisualShader::TYPE_LIGHT, VisualShaderNode::PORT_TYPE_TRANSFORM, "view_matrix", "VIEW_MATRIX" },
 	{ Shader::MODE_SPATIAL, VisualShader::TYPE_LIGHT, VisualShaderNode::PORT_TYPE_VECTOR_2D, "viewport_size", "VIEWPORT_SIZE" },
 	{ Shader::MODE_SPATIAL, VisualShader::TYPE_LIGHT, VisualShaderNode::PORT_TYPE_BOOLEAN, "is_multiview", "IS_MULTIVIEW" },
+
+	// Node3D, Tessellation Control
+	{ Shader::MODE_SPATIAL, VisualShader::TYPE_TESSELLATION_CONTROL, VisualShaderNode::PORT_TYPE_SCALAR_INT, "invocation_id", "INVOCATION_ID" },
+	{ Shader::MODE_SPATIAL, VisualShader::TYPE_TESSELLATION_CONTROL, VisualShaderNode::PORT_TYPE_VECTOR_3D, "vertex", "VERTEX" },
+
+	// Node3D, Tessellation Evaluation
+	{ Shader::MODE_SPATIAL, VisualShader::TYPE_TESSELLATION_EVALUATION, VisualShaderNode::PORT_TYPE_VECTOR_3D, "tess_coord", "TESS_COORD" },
+	{ Shader::MODE_SPATIAL, VisualShader::TYPE_TESSELLATION_EVALUATION, VisualShaderNode::PORT_TYPE_VECTOR_3D, "vertex", "VERTEX" },
+	{ Shader::MODE_SPATIAL, VisualShader::TYPE_TESSELLATION_EVALUATION, VisualShaderNode::PORT_TYPE_VECTOR_2D, "uv", "UV" },
 
 	// Canvas Item
 

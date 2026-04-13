@@ -354,10 +354,14 @@ public:
 	struct VaryingFunctionNames {
 		StringName fragment;
 		StringName vertex;
+		StringName tesselation_control;
+		StringName tesselation_evaluation;
 		StringName light;
 		VaryingFunctionNames() {
 			fragment = "fragment";
 			vertex = "vertex";
+			tesselation_control = "tesselation_control";
+			tesselation_evaluation = "tesselation_evaluation";
 			light = "light";
 		}
 	};
@@ -625,6 +629,8 @@ public:
 			enum Stage {
 				STAGE_UNKNOWN,
 				STAGE_VERTEX,
+				STAGE_TESSELATION_CONTROL,
+				STAGE_TESSELATION_EVALUATION,
 				STAGE_FRAGMENT,
 			};
 
@@ -873,13 +879,15 @@ public:
 	struct BuiltInInfo {
 		DataType type = TYPE_VOID;
 		bool constant = false;
+		int array_size = 0;
 		Vector<Scalar> values;
 
 		BuiltInInfo() {}
 
-		BuiltInInfo(DataType p_type, bool p_constant = false, const Vector<Scalar> &p_values = {}) :
+		BuiltInInfo(DataType p_type, bool p_constant = false, int p_array_size = 0, const Vector<Scalar> &p_values = {}) :
 				type(p_type),
 				constant(p_constant),
+				array_size(p_array_size),
 				values(p_values) {}
 	};
 

@@ -6049,6 +6049,12 @@ RDD::PipelineID RenderingDeviceDriverVulkan::render_pipeline_create(
 		}
 	}
 
+	/*
+	// In case of Tessellation.
+	if (shader_info->vk_push_constant_stages & (VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT)) {
+		input_assembly_create_info.topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
+	}
+	*/
 	const RenderPassInfo *render_pass = (const RenderPassInfo *)(p_render_pass.id);
 	pipeline_create_info.pStages = vk_pipeline_stages;
 	pipeline_create_info.pVertexInputState = vertex_input_state_create_info;

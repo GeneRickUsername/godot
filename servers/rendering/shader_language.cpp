@@ -1420,6 +1420,9 @@ bool ShaderLanguage::_find_identifier(const BlockNode *p_block, bool p_allow_rea
 			if (r_data_type) {
 				*r_data_type = p_function_info.built_ins[p_identifier].type;
 			}
+			if (r_array_size) {
+				*r_array_size = p_function_info.built_ins[p_identifier].array_size;
+			}
 			if (r_is_const) {
 				*r_is_const = p_function_info.built_ins[p_identifier].constant;
 			}
@@ -5454,7 +5457,7 @@ bool ShaderLanguage::_is_operator_assign(Operator p_op) const {
 }
 
 bool ShaderLanguage::_validate_varying_assign(ShaderNode::Varying &p_varying, String *r_message) {
-	if (current_function != "vertex" && current_function != "fragment") {
+	if (current_function != "vertex" && current_function != "fragment" && current_function != "tesselation_control" && current_function != "tesselation_evaluation") {
 		*r_message = vformat(RTR("Varying may not be assigned in the '%s' function."), current_function);
 		return false;
 	}
@@ -5466,18 +5469,34 @@ bool ShaderLanguage::_validate_varying_assign(ShaderNode::Varying &p_varying, St
 					return false;
 				}
 				p_varying.stage = ShaderNode::Varying::STAGE_VERTEX;
+			} else if (current_function == varying_function_names.tesselation_control) {
+				p_varying.stage = ShaderNode::Varying::STAGE_TESSELATION_CONTROL;
+			} else if (current_function == varying_function_names.tesselation_evaluation) {
+				p_varying.stage = ShaderNode::Varying::STAGE_TESSELATION_EVALUATION;
 			} else if (current_function == varying_function_names.fragment) {
 				p_varying.stage = ShaderNode::Varying::STAGE_FRAGMENT;
 			}
 			break;
 		case ShaderNode::Varying::STAGE_VERTEX:
-			if (current_function == varying_function_names.fragment) {
+			if (current_function != varying_function_names.vertex) {
+				*r_message = vformat(RTR("Varyings which assigned in '%s' function may not be reassigned in '%s' or '%s'."), "vertex", "fragment", "light");
+				return false;
+			}
+			break;
+		case ShaderNode::Varying::STAGE_TESSELATION_CONTROL:
+			if (current_function != varying_function_names.tesselation_control) {
+				*r_message = vformat(RTR("Varyings which assigned in '%s' function may not be reassigned in '%s' or '%s'."), "vertex", "fragment", "light");
+				return false;
+			}
+			break;
+		case ShaderNode::Varying::STAGE_TESSELATION_EVALUATION:
+			if (current_function != varying_function_names.tesselation_evaluation) {
 				*r_message = vformat(RTR("Varyings which assigned in '%s' function may not be reassigned in '%s' or '%s'."), "vertex", "fragment", "light");
 				return false;
 			}
 			break;
 		case ShaderNode::Varying::STAGE_FRAGMENT:
-			if (current_function == varying_function_names.vertex) {
+			if (current_function != varying_function_names.fragment) {
 				*r_message = vformat(RTR("Varyings which assigned in '%s' function may not be reassigned in '%s' or '%s'."), "fragment", "vertex", "light");
 				return false;
 			}

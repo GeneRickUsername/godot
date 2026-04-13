@@ -1413,6 +1413,25 @@ MaterialStorage::MaterialStorage() {
 		actions.render_mode_defines["particle_trails"] = "#define USE_PARTICLE_TRAILS\n";
 		actions.render_mode_defines["depth_prepass_alpha"] = "#define USE_OPAQUE_PREPASS\n";
 
+		// tessellation
+		actions.renames["TESS_LEVEL_INNER"] = "gl_TessLevelInner";
+		actions.renames["TESS_LEVEL_OUTER"] = "gl_TessLevelOuter";
+		actions.renames["TESS_COORD"] = "gl_TessCoord";
+		actions.renames["TESS_IN_POSITION"] = "gl_in[gl_InvocationID].gl_Position";
+		actions.renames["TESS_OUT_POSITION"] = "gl_out[gl_InvocationID].gl_Position";
+		actions.renames["INVOCATION_ID"] = "gl_InvocationID";
+		actions.renames["TESS_NORMAL"] = "tess_normal_interp";
+		actions.renames["TESS_UV"] = "tess_uv_interp";
+		actions.renames["TESS_VERTEX"] = "tess_vertex_interp";
+
+		actions.usage_defines["TESS_LEVEL_INNER"] = "#define TESS_USED\n";
+		actions.usage_defines["TESS_LEVEL_OUTER"] = "#define TESS_USED\n";
+		actions.usage_defines["TESS_NORMAL"] = "#define NORMAL_USED\n";
+		actions.usage_defines["TESS_UV"] = "#define UV_USED\n";
+		actions.usage_defines["TESS_VERTEX"] = "#define UV_USED\n";
+
+		actions.render_mode_defines["tessellate"] = "#define USE_TESSELLATION\n";
+
 		bool force_lambert = GLOBAL_GET("rendering/shading/overrides/force_lambert_over_burley");
 
 		if (!force_lambert) {
@@ -2674,6 +2693,9 @@ void CanvasShaderData::set_code(const String &p_code) {
 	actions.entry_point_stages["fragment"] = ShaderCompiler::STAGE_FRAGMENT;
 	actions.entry_point_stages["light"] = ShaderCompiler::STAGE_FRAGMENT;
 
+	actions.entry_point_stages["tesselation_control"] = ShaderCompiler::STAGE_TESSELATION_CONTROL;
+	actions.entry_point_stages["tesselation_evaluation"] = ShaderCompiler::STAGE_TESSELATION_EVALUATION;
+
 	actions.render_mode_values["blend_add"] = Pair<int *, int>(&blend_modei, BLEND_MODE_ADD);
 	actions.render_mode_values["blend_mix"] = Pair<int *, int>(&blend_modei, BLEND_MODE_MIX);
 	actions.render_mode_values["blend_sub"] = Pair<int *, int>(&blend_modei, BLEND_MODE_SUB);
@@ -2714,11 +2736,13 @@ void CanvasShaderData::set_code(const String &p_code) {
 	print_line("\n**uniforms:\n" + gen_code.uniforms);
 	print_line("\n**vertex_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX]);
 	print_line("\n**fragment_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT]);
+	print_line("\n**tesselation_control_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_CONTROL]);
+	print_line("\n**tesselation_evaluation_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_EVALUATION]);
 #endif
 
 	LocalVector<ShaderGLES3::TextureUniformData> texture_uniform_data = get_texture_uniform_data(gen_code.texture_uniforms);
 
-	MaterialStorage::get_singleton()->shaders.canvas_shader.version_set_code(version, gen_code.code, gen_code.uniforms, gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX], gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT], gen_code.defines, texture_uniform_data);
+	MaterialStorage::get_singleton()->shaders.canvas_shader.version_set_code(version, gen_code.code, gen_code.uniforms, gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX], gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT], gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_CONTROL], gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_EVALUATION], gen_code.defines, texture_uniform_data);
 	ERR_FAIL_COND(!MaterialStorage::get_singleton()->shaders.canvas_shader.version_is_valid(version));
 
 	vertex_input_mask = RSE::ARRAY_FORMAT_VERTEX | RSE::ARRAY_FORMAT_COLOR | RSE::ARRAY_FORMAT_TEX_UV;
@@ -2839,6 +2863,9 @@ void SkyShaderData::set_code(const String &p_code) {
 	ShaderCompiler::IdentifierActions actions;
 	actions.entry_point_stages["sky"] = ShaderCompiler::STAGE_FRAGMENT;
 
+	actions.entry_point_stages["tesselation_control"] = ShaderCompiler::STAGE_TESSELATION_CONTROL;
+	actions.entry_point_stages["tesselation_evaluation"] = ShaderCompiler::STAGE_TESSELATION_EVALUATION;
+
 	actions.render_mode_flags["use_half_res_pass"] = &uses_half_res;
 	actions.render_mode_flags["use_quarter_res_pass"] = &uses_quarter_res;
 
@@ -2890,11 +2917,13 @@ void SkyShaderData::set_code(const String &p_code) {
 	print_line("\n**uniforms:\n" + gen_code.uniforms);
 	print_line("\n**vertex_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX]);
 	print_line("\n**fragment_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT]);
+	print_line("\n**tesselation_control_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_CONTROL]);
+	print_line("\n**tesselation_evaluation_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_EVALUATION]);
 #endif
 
 	LocalVector<ShaderGLES3::TextureUniformData> texture_uniform_data = get_texture_uniform_data(gen_code.texture_uniforms);
 
-	MaterialStorage::get_singleton()->shaders.sky_shader.version_set_code(version, gen_code.code, gen_code.uniforms, gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX], gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT], gen_code.defines, texture_uniform_data);
+	MaterialStorage::get_singleton()->shaders.sky_shader.version_set_code(version, gen_code.code, gen_code.uniforms, gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX], gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT], gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_CONTROL], gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_EVALUATION], gen_code.defines, texture_uniform_data);
 	ERR_FAIL_COND(!MaterialStorage::get_singleton()->shaders.sky_shader.version_is_valid(version));
 
 	ubo_size = gen_code.uniform_total_size;
@@ -3027,6 +3056,9 @@ void SceneShaderData::set_code(const String &p_code) {
 	actions.entry_point_stages["vertex"] = ShaderCompiler::STAGE_VERTEX;
 	actions.entry_point_stages["fragment"] = ShaderCompiler::STAGE_FRAGMENT;
 	actions.entry_point_stages["light"] = ShaderCompiler::STAGE_FRAGMENT;
+
+	actions.entry_point_stages["tesselation_control"] = ShaderCompiler::STAGE_TESSELATION_CONTROL;
+	actions.entry_point_stages["tesselation_evaluation"] = ShaderCompiler::STAGE_TESSELATION_EVALUATION;
 
 	actions.render_mode_values["blend_add"] = Pair<int *, int>(&blend_modei, BLEND_MODE_ADD);
 	actions.render_mode_values["blend_mix"] = Pair<int *, int>(&blend_modei, BLEND_MODE_MIX);
@@ -3185,11 +3217,13 @@ void SceneShaderData::set_code(const String &p_code) {
 	print_line("\n**uniforms:\n" + gen_code.uniforms);
 	print_line("\n**vertex_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX]);
 	print_line("\n**fragment_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT]);
+	print_line("\n**tesselation_control_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_CONTROL]);
+	print_line("\n**tesselation_evaluation_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_EVALUATION]);
 #endif
 
 	LocalVector<ShaderGLES3::TextureUniformData> texture_uniform_data = get_texture_uniform_data(gen_code.texture_uniforms);
 
-	MaterialStorage::get_singleton()->shaders.scene_shader.version_set_code(version, gen_code.code, gen_code.uniforms, gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX], gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT], gen_code.defines, texture_uniform_data);
+	MaterialStorage::get_singleton()->shaders.scene_shader.version_set_code(version, gen_code.code, gen_code.uniforms, gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX], gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT], gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_CONTROL], gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_EVALUATION], gen_code.defines, texture_uniform_data);
 	ERR_FAIL_COND(!MaterialStorage::get_singleton()->shaders.scene_shader.version_is_valid(version));
 
 	ubo_size = gen_code.uniform_total_size;
@@ -3292,6 +3326,9 @@ void ParticlesShaderData::set_code(const String &p_code) {
 	actions.entry_point_stages["start"] = ShaderCompiler::STAGE_VERTEX;
 	actions.entry_point_stages["process"] = ShaderCompiler::STAGE_VERTEX;
 
+	actions.entry_point_stages["tesselation_control"] = ShaderCompiler::STAGE_TESSELATION_CONTROL;
+	actions.entry_point_stages["tesselation_evaluation"] = ShaderCompiler::STAGE_TESSELATION_EVALUATION;
+
 	actions.usage_flag_pointers["COLLIDED"] = &uses_collision;
 
 	userdata_count = 0;
@@ -3317,7 +3354,7 @@ void ParticlesShaderData::set_code(const String &p_code) {
 
 	LocalVector<ShaderGLES3::TextureUniformData> texture_uniform_data = get_texture_uniform_data(gen_code.texture_uniforms);
 
-	MaterialStorage::get_singleton()->shaders.particles_process_shader.version_set_code(version, gen_code.code, gen_code.uniforms, gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX], gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT], gen_code.defines, texture_uniform_data);
+	MaterialStorage::get_singleton()->shaders.particles_process_shader.version_set_code(version, gen_code.code, gen_code.uniforms, gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX], gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT], gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_CONTROL], gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_EVALUATION], gen_code.defines, texture_uniform_data);
 	ERR_FAIL_COND(!MaterialStorage::get_singleton()->shaders.particles_process_shader.version_is_valid(version));
 
 	ubo_size = gen_code.uniform_total_size;
@@ -3393,6 +3430,9 @@ void TexBlitShaderData::set_code(const String &p_code) {
 	ShaderCompiler::IdentifierActions actions;
 	actions.entry_point_stages["blit"] = ShaderCompiler::STAGE_FRAGMENT;
 
+	actions.entry_point_stages["tesselation_control"] = ShaderCompiler::STAGE_TESSELATION_CONTROL;
+	actions.entry_point_stages["tesselation_evaluation"] = ShaderCompiler::STAGE_TESSELATION_EVALUATION;
+
 	actions.render_mode_values["blend_add"] = Pair<int *, int>(&blend_modei, BLEND_MODE_ADD);
 	actions.render_mode_values["blend_mix"] = Pair<int *, int>(&blend_modei, BLEND_MODE_MIX);
 	actions.render_mode_values["blend_sub"] = Pair<int *, int>(&blend_modei, BLEND_MODE_SUB);
@@ -3425,11 +3465,13 @@ void TexBlitShaderData::set_code(const String &p_code) {
 	print_line("\n**uniforms:\n" + gen_code.uniforms);
 	print_line("\n**vertex_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX]);
 	print_line("\n**fragment_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT]);
+	print_line("\n**tesselation_control_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_CONTROL]);
+	print_line("\n**tesselation_evaluation_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_EVALUATION]);
 #endif
 
 	LocalVector<ShaderGLES3::TextureUniformData> texture_uniform_data = get_texture_uniform_data(gen_code.texture_uniforms);
 
-	MaterialStorage::get_singleton()->shaders.tex_blit_shader.version_set_code(version, gen_code.code, gen_code.uniforms, gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX], gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT], gen_code.defines, texture_uniform_data);
+	MaterialStorage::get_singleton()->shaders.tex_blit_shader.version_set_code(version, gen_code.code, gen_code.uniforms, gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX], gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT], gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_CONTROL], gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_EVALUATION], gen_code.defines, texture_uniform_data);
 	ERR_FAIL_COND(!MaterialStorage::get_singleton()->shaders.tex_blit_shader.version_is_valid(version));
 
 	ubo_size = gen_code.uniform_total_size;

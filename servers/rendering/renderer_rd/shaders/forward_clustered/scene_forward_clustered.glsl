@@ -860,6 +860,65 @@ void main() {
 			screen_position);
 }
 
+#ifdef TESS_USED
+
+#[tesselation_control]
+
+#version 450
+
+#VERSION_DEFINES
+
+layout(vertices = 3) out;
+
+#ifdef UV_USED
+layout(location = 3) in vec2 uv_interp[];
+#endif
+
+layout(location = 14) out vec3 tess_normal_interp[];
+layout(location = 15) out vec2 tess_uv_interp[];
+layout(location = 16) out vec3 tess_vertex_interp[];
+
+#include "../half_inc.glsl"
+#include "scene_forward_clustered_inc.glsl"
+
+/* Insert the globals (varyings and uniforms) from the compiler */
+#GLOBALS
+
+void main() {
+    tess_uv_interp[gl_InvocationID] = uv_interp[gl_InvocationID];
+    // Pass through the vertex position to the next stage
+    gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+    
+    // In Godot, you'll want to inject your compiler's TCS logic here
+#CODE : TESSELATION_CONTROL
+}
+
+#[tesselation_evaluation]
+
+#version 450
+
+#VERSION_DEFINES
+
+layout(triangles, equal_spacing, ccw) in;
+
+layout(location = 3) in vec2 uv_interp;
+
+layout(location = 3) out vec2 uv_interp;
+
+#include "../half_inc.glsl"
+#include "scene_forward_clustered_inc.glsl"
+
+#GLOBALS
+
+void main() {
+    // This is the "meat" where the Barycentric coordinates (gl_TessCoord) 
+    // are used to interpolate the vertex positions.
+    uv_interp = tess_uv_interp[0] * gl_TessCoord.x + tess_uv_interp[1] * gl_TessCoord.y + tess_uv_interp[2] * gl_TessCoord.z;
+#CODE : TESSELATION_EVALUATION
+}
+
+#endif
+
 #[fragment]
 
 #version 450
