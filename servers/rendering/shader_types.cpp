@@ -61,7 +61,7 @@ static ShaderLanguage::BuiltInInfo constt(ShaderLanguage::DataType p_type) {
 }
 
 static ShaderLanguage::BuiltInInfo constvt(ShaderLanguage::DataType p_type, const Vector<ShaderLanguage::Scalar> &p_values) {
-	return ShaderLanguage::BuiltInInfo(p_type, true, 0, p_values);
+	return ShaderLanguage::BuiltInInfo(p_type, true, p_values);
 }
 
 ShaderTypes::ShaderTypes() {
@@ -133,34 +133,6 @@ ShaderTypes::ShaderTypes() {
 	shader_modes[RSE::SHADER_SPATIAL].functions["vertex"].built_ins["VIEW_MONO_LEFT"] = constt(ShaderLanguage::TYPE_INT);
 	shader_modes[RSE::SHADER_SPATIAL].functions["vertex"].built_ins["VIEW_RIGHT"] = constt(ShaderLanguage::TYPE_INT);
 	shader_modes[RSE::SHADER_SPATIAL].functions["vertex"].built_ins["EYE_OFFSET"] = constt(ShaderLanguage::TYPE_VEC3);
-
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_control"].built_ins["INVOCATION_ID"] = constt(ShaderLanguage::TYPE_INT);
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_control"].built_ins["TESS_LEVEL_INNER"] = ShaderLanguage::BuiltInInfo(ShaderLanguage::TYPE_FLOAT, false, 2); // Array size handled in ShaderLanguage entry
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_control"].built_ins["TESS_LEVEL_OUTER"] = ShaderLanguage::BuiltInInfo(ShaderLanguage::TYPE_FLOAT, false, 4);
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_control"].built_ins["VERTEX"] = ShaderLanguage::TYPE_VEC3;
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_control"].built_ins["TESS_VERTEX"] = ShaderLanguage::BuiltInInfo(ShaderLanguage::TYPE_VEC3, false, 3);
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_control"].built_ins["UV"] = ShaderLanguage::TYPE_VEC2;
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_control"].built_ins["TESS_UV"] = ShaderLanguage::BuiltInInfo(ShaderLanguage::TYPE_VEC2, false, 3);
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_control"].built_ins["NORMAL"] = ShaderLanguage::TYPE_VEC3;
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_control"].built_ins["TESS_NORMAL"] = ShaderLanguage::BuiltInInfo(ShaderLanguage::TYPE_VEC3, false, 3);
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_control"].built_ins["TESS_COORD"] = constt(ShaderLanguage::TYPE_VEC3);
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_control"].built_ins["TESS_IN_POSITION"] = ShaderLanguage::TYPE_VEC4;
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_control"].built_ins["TESS_OUT_POSITION"] = ShaderLanguage::TYPE_VEC4;
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_control"].can_discard = false;
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_control"].main_function = true;
-
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_evaluation"].built_ins["UV"] = ShaderLanguage::TYPE_VEC2;
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_evaluation"].built_ins["TESS_UV"] = ShaderLanguage::BuiltInInfo(ShaderLanguage::TYPE_VEC2, false, 3);
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_evaluation"].built_ins["NORMAL"] = ShaderLanguage::TYPE_VEC3;
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_evaluation"].built_ins["TESS_NORMAL"] = ShaderLanguage::BuiltInInfo(ShaderLanguage::TYPE_VEC3, false, 3);
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_evaluation"].built_ins["TESS_COORD"] = constt(ShaderLanguage::TYPE_VEC3);
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_evaluation"].built_ins["VERTEX"] = ShaderLanguage::TYPE_VEC3;
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_evaluation"].built_ins["PROJECTION_MATRIX"] = constt(ShaderLanguage::TYPE_MAT4);
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_evaluation"].built_ins["MODELVIEW_MATRIX"] = ShaderLanguage::TYPE_MAT4;
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_evaluation"].built_ins["TESS_VERTEX"] = ShaderLanguage::BuiltInInfo(ShaderLanguage::TYPE_VEC3, false, 3);
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_evaluation"].built_ins["POSITION"] = ShaderLanguage::TYPE_VEC4;
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_evaluation"].can_discard = false;
-	shader_modes[RSE::SHADER_SPATIAL].functions["tesselation_evaluation"].main_function = true;
 
 	shader_modes[RSE::SHADER_SPATIAL].functions["fragment"].built_ins["VERTEX"] = constt(ShaderLanguage::TYPE_VEC3);
 	shader_modes[RSE::SHADER_SPATIAL].functions["fragment"].built_ins["LIGHT_VERTEX"] = ShaderLanguage::TYPE_VEC3;

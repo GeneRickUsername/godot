@@ -84,8 +84,6 @@ private:
 		CharString uniforms;
 		CharString vertex_globals;
 		CharString fragment_globals;
-		CharString tesselation_control_globals;
-		CharString tessellation_eval_globals;
 		HashMap<StringName, CharString> code_sections;
 		Vector<CharString> custom_defines;
 
@@ -121,8 +119,6 @@ private:
 				TYPE_MATERIAL_UNIFORMS,
 				TYPE_VERTEX_GLOBALS,
 				TYPE_FRAGMENT_GLOBALS,
-				TYPE_TESSELATION_CONTROL_GLOBALS,
-				TYPE_TESSELATION_EVALUATION_GLOBALS,
 				TYPE_CODE,
 				TYPE_TEXT
 			};
@@ -150,8 +146,6 @@ private:
 	enum StageType {
 		STAGE_TYPE_VERTEX,
 		STAGE_TYPE_FRAGMENT,
-		STAGE_TYPE_TESSELATION_CONTROL,    // Add this
-    	STAGE_TYPE_TESSELATION_EVALUATION, // Add this
 		STAGE_TYPE_MAX,
 	};
 
@@ -184,7 +178,7 @@ private:
 
 protected:
 	ShaderGLES3();
-	void _setup(const char *p_vertex_code, const char *p_fragment_code, const char *p_tess_control_code, const char *p_tess_eval_code, const char *p_name, int p_uniform_count, const char **p_uniform_names, int p_ubo_count, const UBOPair *p_ubos, int p_feedback_count, const Feedback *p_feedback, int p_texture_count, const TexUnitPair *p_tex_units, int p_specialization_count, const Specialization *p_specializations, int p_variant_count, const char **p_variants);
+	void _setup(const char *p_vertex_code, const char *p_fragment_code, const char *p_name, int p_uniform_count, const char **p_uniform_names, int p_ubo_count, const UBOPair *p_ubos, int p_feedback_count, const Feedback *p_feedback, int p_texture_count, const TexUnitPair *p_tex_units, int p_specialization_count, const Specialization *p_specializations, int p_variant_count, const char **p_variants);
 
 	_FORCE_INLINE_ bool _version_bind_shader(RID p_version, int p_variant, uint64_t p_specialization) {
 		ERR_FAIL_INDEX_V(p_variant, variant_count, false);
@@ -243,7 +237,7 @@ protected:
 public:
 	RID version_create();
 
-	void version_set_code(RID p_version, const HashMap<String, String> &p_code, const String &p_uniforms, const String &p_vertex_globals, const String &p_fragment_globals, const String &p_tesselation_control, const String &p_tessellation_eval, const Vector<String> &p_custom_defines, const LocalVector<ShaderGLES3::TextureUniformData> &p_texture_uniforms, bool p_initialize = false);
+	void version_set_code(RID p_version, const HashMap<String, String> &p_code, const String &p_uniforms, const String &p_vertex_globals, const String &p_fragment_globals, const Vector<String> &p_custom_defines, const LocalVector<ShaderGLES3::TextureUniformData> &p_texture_uniforms, bool p_initialize = false);
 
 	bool version_is_valid(RID p_version);
 

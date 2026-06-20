@@ -141,10 +141,6 @@ static D3D12_SHADER_VISIBILITY stages_to_d3d12_visibility(uint32_t p_stages_mask
 			return D3D12_SHADER_VISIBILITY_VERTEX;
 		case RenderingDeviceCommons::SHADER_STAGE_FRAGMENT_BIT:
 			return D3D12_SHADER_VISIBILITY_PIXEL;
-		case RenderingDeviceCommons::SHADER_STAGE_TESSELATION_CONTROL_BIT:
-            return D3D12_SHADER_VISIBILITY_HULL;
-        case RenderingDeviceCommons::SHADER_STAGE_TESSELATION_EVALUATION_BIT:
-            return D3D12_SHADER_VISIBILITY_DOMAIN;
 		default:
 			return D3D12_SHADER_VISIBILITY_ALL;
 	}

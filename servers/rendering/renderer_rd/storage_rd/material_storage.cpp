@@ -1279,8 +1279,6 @@ void MaterialStorage::TexBlitShaderData::set_code(const String &p_code) {
 
 	ShaderCompiler::IdentifierActions actions;
 	actions.entry_point_stages["blit"] = ShaderCompiler::STAGE_FRAGMENT;
-	actions.entry_point_stages["tesselation_control"] = ShaderCompiler::STAGE_TESSELATION_CONTROL;
-	actions.entry_point_stages["tesselation_evaluation"] = ShaderCompiler::STAGE_TESSELATION_EVALUATION;
 
 	actions.render_mode_values["blend_add"] = Pair<int *, int>(&blend_modei, BLEND_MODE_ADD);
 	actions.render_mode_values["blend_mix"] = Pair<int *, int>(&blend_modei, BLEND_MODE_MIX);
@@ -1314,11 +1312,9 @@ void MaterialStorage::TexBlitShaderData::set_code(const String &p_code) {
 	print_line("\n**uniforms:\n" + gen_code.uniforms);
 	print_line("\n**vertex_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX]);
 	print_line("\n**fragment_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT]);
-	print_line("\n**tesselation_control_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_CONTROL]);
-	print_line("\n**tesselation_evaluation_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_EVALUATION]);
 #endif
 
-	texture_storage->tex_blit_shader.shader.version_set_code(version, gen_code.code, gen_code.uniforms, gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX], gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT], gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_CONTROL], gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_EVALUATION], gen_code.defines);
+	texture_storage->tex_blit_shader.shader.version_set_code(version, gen_code.code, gen_code.uniforms, gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX], gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT], gen_code.defines);
 	ERR_FAIL_COND(!texture_storage->tex_blit_shader.shader.version_is_valid(version));
 
 	ubo_size = gen_code.uniform_total_size;
@@ -1375,16 +1371,11 @@ void MaterialStorage::TexBlitShaderData::set_code(const String &p_code) {
 
 	blend_state_color_blend.attachments = { attachment, attachment, attachment, attachment };
 
-	RD::RenderPrimitive primitive = RD::RENDER_PRIMITIVE_TRIANGLES;
-	if (gen_code.code.has("tesselation_control") || gen_code.code.has("tesselation_evaluation")) {
-		primitive = RD::RENDER_PRIMITIVE_TESSELATION_PATCH;
-	}
-
 	// Update Pipelines
 	for (int i = 0; i < 4; i++) {
 		RID shader_variant = texture_storage->tex_blit_shader.shader.version_get_shader(version, i);
 
-		pipelines[i].setup(shader_variant, primitive, RD::PipelineRasterizationState(), RD::PipelineMultisampleState(), RD::PipelineDepthStencilState(), blend_state_color_blend, 0);
+		pipelines[i].setup(shader_variant, RD::RENDER_PRIMITIVE_TRIANGLES, RD::PipelineRasterizationState(), RD::PipelineMultisampleState(), RD::PipelineDepthStencilState(), blend_state_color_blend, 0);
 	}
 
 	valid = true;

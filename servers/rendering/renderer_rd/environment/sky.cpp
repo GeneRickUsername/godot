@@ -69,9 +69,6 @@ void SkyRD::SkyShaderData::set_code(const String &p_code) {
 	ShaderCompiler::IdentifierActions actions;
 	actions.entry_point_stages["sky"] = ShaderCompiler::STAGE_FRAGMENT;
 
-	actions.entry_point_stages["tesselation_control"] = ShaderCompiler::STAGE_TESSELATION_CONTROL;
-	actions.entry_point_stages["tesselation_evaluation"] = ShaderCompiler::STAGE_TESSELATION_EVALUATION;
-
 	uses_time = false;
 	uses_half_res = false;
 	uses_quarter_res = false;
@@ -134,7 +131,7 @@ void SkyRD::SkyShaderData::set_code(const String &p_code) {
 	print_line("\n**fragment_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT]);
 #endif
 
-	scene_singleton->sky.sky_shader.shader.version_set_code(version, gen_code.code, gen_code.uniforms, gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX], gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT], gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_CONTROL], gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_EVALUATION], gen_code.defines);
+	scene_singleton->sky.sky_shader.shader.version_set_code(version, gen_code.code, gen_code.uniforms, gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX], gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT], gen_code.defines);
 	ERR_FAIL_COND(!scene_singleton->sky.sky_shader.shader.version_is_valid(version));
 
 	ubo_size = gen_code.uniform_total_size;
@@ -149,12 +146,8 @@ void SkyRD::SkyShaderData::set_code(const String &p_code) {
 		depth_stencil_state.depth_compare_operator = RD::COMPARE_OP_GREATER_OR_EQUAL;
 
 		if (scene_singleton->sky.sky_shader.shader.is_variant_enabled(i)) {
-			RD::RenderPrimitive primitive = RD::RENDER_PRIMITIVE_TRIANGLES;
-			if (gen_code.code.has("tesselation_control") || gen_code.code.has("tesselation_evaluation")) {
-				primitive = RD::RENDER_PRIMITIVE_TESSELATION_PATCH;
-			}
 			RID shader_variant = scene_singleton->sky.sky_shader.shader.version_get_shader(version, i);
-			pipelines[i].setup(shader_variant, primitive, RD::PipelineRasterizationState(), RD::PipelineMultisampleState(), depth_stencil_state, RD::PipelineColorBlendState::create_disabled(), 0);
+			pipelines[i].setup(shader_variant, RD::RENDER_PRIMITIVE_TRIANGLES, RD::PipelineRasterizationState(), RD::PipelineMultisampleState(), depth_stencil_state, RD::PipelineColorBlendState::create_disabled(), 0);
 		} else {
 			pipelines[i].clear();
 		}

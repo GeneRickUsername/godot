@@ -64,12 +64,6 @@ void ShaderRD::_add_stage(const char *p_code, StageType p_stage_type) {
 				case STAGE_TYPE_FRAGMENT:
 					chunk.type = StageTemplate::Chunk::TYPE_FRAGMENT_GLOBALS;
 					break;
-				case STAGE_TYPE_TESSELATION_CONTROL:
-				    chunk.type = StageTemplate::Chunk::TYPE_TESSELATION_CONTROL_GLOBALS;
-				    break;
-				case STAGE_TYPE_TESSELATION_EVALUATION:
-				    chunk.type = StageTemplate::Chunk::TYPE_TESSELATION_EVALUATION_GLOBALS;
-				    break;
 				case STAGE_TYPE_COMPUTE:
 					chunk.type = StageTemplate::Chunk::TYPE_COMPUTE_GLOBALS;
 					break;
@@ -154,7 +148,7 @@ void ShaderRD::_add_stage(const char *p_code, StageType p_stage_type) {
 	}
 }
 
-void ShaderRD::setup(const char *p_vertex_code, const char *p_fragment_code, const char *p_tesselation_control_code, const char *p_tesselation_evaluation_code, const char *p_compute_code, const char *p_name) {
+void ShaderRD::setup(const char *p_vertex_code, const char *p_fragment_code, const char *p_compute_code, const char *p_name) {
 	name = p_name;
 
 	if (p_compute_code) {
@@ -168,12 +162,6 @@ void ShaderRD::setup(const char *p_vertex_code, const char *p_fragment_code, con
 		if (p_fragment_code) {
 			_add_stage(p_fragment_code, STAGE_TYPE_FRAGMENT);
 		}
-		if (p_tesselation_control_code) {
-			_add_stage(p_tesselation_control_code, STAGE_TYPE_TESSELATION_CONTROL);
-        }
-		if (p_tesselation_evaluation_code) {
-			_add_stage(p_tesselation_evaluation_code, STAGE_TYPE_TESSELATION_EVALUATION);
-        }
 	}
 
 	StringBuilder tohash;
@@ -185,12 +173,6 @@ void ShaderRD::setup(const char *p_vertex_code, const char *p_fragment_code, con
 	tohash.append(p_vertex_code ? p_vertex_code : "");
 	tohash.append("[Fragment]");
 	tohash.append(p_fragment_code ? p_fragment_code : "");
-
-	tohash.append("[TessControl]");
-	tohash.append(p_tesselation_control_code ? p_tesselation_control_code : "");
-    tohash.append("[TessEval]");
-	tohash.append(p_tesselation_evaluation_code ? p_tesselation_evaluation_code : "");
-
 	tohash.append("[Compute]");
 	tohash.append(p_compute_code ? p_compute_code : "");
 	tohash.append("[DebugInfo]");
@@ -327,12 +309,6 @@ void ShaderRD::_build_variant_code(StringBuilder &builder, uint32_t p_variant, c
 			case StageTemplate::Chunk::TYPE_COMPUTE_GLOBALS: {
 				builder.append(p_version->compute_globals.get_data()); // compute globals
 			} break;
-			case StageTemplate::Chunk::TYPE_TESSELATION_CONTROL_GLOBALS: {
-				builder.append(p_version->tess_control_globals.get_data()); // tessellation globals
-			} break;
-			case StageTemplate::Chunk::TYPE_TESSELATION_EVALUATION_GLOBALS: {
-				builder.append(p_version->tess_eval_globals.get_data()); // tessellation globals
-			} break;
 			case StageTemplate::Chunk::TYPE_RAYGEN_GLOBALS: {
 				builder.append(p_version->raygen_globals.get_data()); // raygen globals
 			} break;
@@ -422,20 +398,6 @@ Vector<String> ShaderRD::_build_variant_stage_sources(uint32_t p_variant, Compil
 			_build_variant_code(builder, p_variant, p_data.version, stage_templates[STAGE_TYPE_FRAGMENT]);
 			stage_sources.write[RD::SHADER_STAGE_FRAGMENT] = builder.as_string();
 		}
-
-		{
-			// Control stage.
-			StringBuilder builder;
-			_build_variant_code(builder, p_variant, p_data.version, stage_templates[STAGE_TYPE_TESSELATION_CONTROL]);
-			stage_sources.write[RD::SHADER_STAGE_TESSELATION_CONTROL] = builder.as_string();
-		}
-
-		{
-			// Eval stage.
-			StringBuilder builder;
-			_build_variant_code(builder, p_variant, p_data.version, stage_templates[STAGE_TYPE_TESSELATION_EVALUATION]);
-			stage_sources.write[RD::SHADER_STAGE_TESSELATION_EVALUATION] = builder.as_string();
-		}
 	}
 
 	return stage_sources;
@@ -505,30 +467,6 @@ RenderingServerTypes::ShaderNativeSourceCode ShaderRD::version_get_native_source
 
 			RenderingServerTypes::ShaderNativeSourceCode::Version::Stage stage;
 			stage.name = "fragment";
-			stage.code = builder.as_string();
-
-			source_code.versions.write[i].stages.push_back(stage);
-		}
-
-		if (pipeline_type == RD::PIPELINE_TYPE_RASTERIZATION) {
-			// Tessellation Control
-			StringBuilder builder;
-			_build_variant_code(builder, i, version, stage_templates[STAGE_TYPE_TESSELATION_CONTROL]);
-
-			RenderingServerTypes::ShaderNativeSourceCode::Version::Stage stage;
-			stage.name = "tesselation_control";
-			stage.code = builder.as_string();
-			print_line(vformat("--- DEBUG: TESS CONTROL CODE (Variant %d) ---\n%s\n--- END DEBUG ---", i, stage.code));
-			source_code.versions.write[i].stages.push_back(stage);
-		}
-
-		if (pipeline_type == RD::PIPELINE_TYPE_RASTERIZATION) {
-			// Tessellation Evaluation
-			StringBuilder builder;
-			_build_variant_code(builder, i, version, stage_templates[STAGE_TYPE_TESSELATION_EVALUATION]);
-
-			RenderingServerTypes::ShaderNativeSourceCode::Version::Stage stage;
-			stage.name = "tesselation_evaluation";
 			stage.code = builder.as_string();
 
 			source_code.versions.write[i].stages.push_back(stage);
@@ -628,10 +566,6 @@ String ShaderRD::_version_get_sha1(Version *p_version) const {
 	hash_build.append(p_version->vertex_globals.get_data());
 	hash_build.append("[fragment_globals]");
 	hash_build.append(p_version->fragment_globals.get_data());
-	hash_build.append("[tess_control_globals]");
-	hash_build.append(p_version->tess_control_globals.get_data());
-	hash_build.append("[tess_eval_globals]");
-	hash_build.append(p_version->tess_eval_globals.get_data());
 	hash_build.append("[compute_globals]");
 	hash_build.append(p_version->compute_globals.get_data());
 	hash_build.append("[raygen_globals]");
@@ -664,7 +598,7 @@ String ShaderRD::_version_get_sha1(Version *p_version) const {
 }
 
 static const char *shader_file_header = "GDSC";
-static const uint32_t cache_file_version = 5;
+static const uint32_t cache_file_version = 4;
 
 String ShaderRD::_get_cache_file_relative_path(Version *p_version, int p_group, const String &p_api_name) {
 	String sha1 = _version_get_sha1(p_version);
@@ -878,7 +812,7 @@ void ShaderRD::_version_set(Version *p_version, const HashMap<String, String> &p
 	}
 }
 
-void ShaderRD::version_set_code(RID p_version, const HashMap<String, String> &p_code, const String &p_uniforms, const String &p_vertex_globals, const String &p_fragment_globals, const String &p_tess_control_globals, const String &p_tess_eval_globals, const Vector<String> &p_custom_defines) {
+void ShaderRD::version_set_code(RID p_version, const HashMap<String, String> &p_code, const String &p_uniforms, const String &p_vertex_globals, const String &p_fragment_globals, const Vector<String> &p_custom_defines) {
 	ERR_FAIL_COND(pipeline_type != RD::PIPELINE_TYPE_RASTERIZATION);
 
 	Version *version = version_owner.get_or_null(p_version);
@@ -891,10 +825,7 @@ void ShaderRD::version_set_code(RID p_version, const HashMap<String, String> &p_
 	version->vertex_globals = p_vertex_globals.utf8();
 	version->fragment_globals = p_fragment_globals.utf8();
 	version->uniforms = p_uniforms.utf8();
-	
-	version->tess_control_globals = p_tess_control_globals.utf8();
-	version->tess_eval_globals = p_tess_eval_globals.utf8();
-	
+
 	_version_set(version, p_code, p_custom_defines);
 }
 
@@ -1245,29 +1176,7 @@ Vector<RD::ShaderStageSPIRVData> ShaderRD::compile_stages(const Vector<String> &
 	}
 
 	if (compilation_failed) {
-		String stage_name;
-		switch (compilation_failed_stage) {
-			case RD::SHADER_STAGE_VERTEX:
-				stage_name = "Vertex";
-				break;
-			case RD::SHADER_STAGE_TESSELATION_CONTROL:
-				stage_name = "Tessellation Control";
-				break; // Add this
-			case RD::SHADER_STAGE_TESSELATION_EVALUATION:
-				stage_name = "Tessellation Evaluation";
-				break; // Add this
-			case RD::SHADER_STAGE_FRAGMENT:
-				stage_name = "Fragment";
-				break;
-			case RD::SHADER_STAGE_COMPUTE:
-				stage_name = "Compute";
-				break;
-			default:
-				stage_name = "Unknown";
-				break;
-		}
-
-		ERR_PRINT("Error compiling " + stage_name + " shader.");
+		ERR_PRINT("Error compiling " + String(compilation_failed_stage == RD::SHADER_STAGE_COMPUTE ? "Compute " : (compilation_failed_stage == RD::SHADER_STAGE_VERTEX ? "Vertex" : "Fragment")) + " shader.");
 		ERR_PRINT(error);
 
 #ifdef DEBUG_ENABLED

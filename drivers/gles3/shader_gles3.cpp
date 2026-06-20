@@ -65,12 +65,6 @@ void ShaderGLES3::_add_stage(const char *p_code, StageType p_stage_type) {
 				case STAGE_TYPE_FRAGMENT:
 					chunk.type = StageTemplate::Chunk::TYPE_FRAGMENT_GLOBALS;
 					break;
-				case STAGE_TYPE_TESSELATION_CONTROL:
-					chunk.type = StageTemplate::Chunk::TYPE_TESSELATION_CONTROL_GLOBALS;
-					break;
-				case STAGE_TYPE_TESSELATION_EVALUATION:
-					chunk.type = StageTemplate::Chunk::TYPE_TESSELATION_EVALUATION_GLOBALS;
-					break;
 				default: {
 				}
 			}
@@ -108,7 +102,7 @@ void ShaderGLES3::_add_stage(const char *p_code, StageType p_stage_type) {
 	}
 }
 
-void ShaderGLES3::_setup(const char *p_vertex_code, const char *p_fragment_code, const char *p_tess_control_code, const char *p_tess_eval_code, const char *p_name, int p_uniform_count, const char **p_uniform_names, int p_ubo_count, const UBOPair *p_ubos, int p_feedback_count, const Feedback *p_feedback, int p_texture_count, const TexUnitPair *p_tex_units, int p_specialization_count, const Specialization *p_specializations, int p_variant_count, const char **p_variants) {
+void ShaderGLES3::_setup(const char *p_vertex_code, const char *p_fragment_code, const char *p_name, int p_uniform_count, const char **p_uniform_names, int p_ubo_count, const UBOPair *p_ubos, int p_feedback_count, const Feedback *p_feedback, int p_texture_count, const TexUnitPair *p_tex_units, int p_specialization_count, const Specialization *p_specializations, int p_variant_count, const char **p_variants) {
 	name = p_name;
 
 	if (p_vertex_code) {
@@ -116,13 +110,6 @@ void ShaderGLES3::_setup(const char *p_vertex_code, const char *p_fragment_code,
 	}
 	if (p_fragment_code) {
 		_add_stage(p_fragment_code, STAGE_TYPE_FRAGMENT);
-	}
-
-	if (p_tess_control_code) {
-    	_add_stage(p_tess_control_code, STAGE_TYPE_TESSELATION_CONTROL);
-	}
-	if (p_tess_eval_code) {
-    	_add_stage(p_tess_eval_code, STAGE_TYPE_TESSELATION_EVALUATION);
 	}
 
 	uniform_names = p_uniform_names;
@@ -149,11 +136,6 @@ void ShaderGLES3::_setup(const char *p_vertex_code, const char *p_fragment_code,
 	tohash.append(p_vertex_code ? String::utf8(p_vertex_code) : "");
 	tohash.append("[Fragment]");
 	tohash.append(p_fragment_code ? String::utf8(p_fragment_code) : "");
-
-	tohash.append("[TessControl]");
-	tohash.append(p_tess_control_code ? String::utf8(p_tess_control_code) : "");
-	tohash.append("[TessEval]");
-	tohash.append(p_tess_eval_code ? String::utf8(p_tess_eval_code) : "");
 
 	tohash.append("[gl_implementation]");
 	const String &vendor = String::utf8((const char *)glGetString(GL_VENDOR));
@@ -255,12 +237,6 @@ void ShaderGLES3::_build_variant_code(StringBuilder &builder, uint32_t p_variant
 			} break;
 			case StageTemplate::Chunk::TYPE_FRAGMENT_GLOBALS: {
 				builder.append(String::utf8(p_version->fragment_globals.get_data())); // fragment globals
-			} break;
-			case StageTemplate::Chunk::TYPE_TESSELATION_CONTROL_GLOBALS: {
-				builder.append(String::utf8(p_version->tesselation_control_globals.get_data())); // control globals
-			} break;
-			case StageTemplate::Chunk::TYPE_TESSELATION_EVALUATION_GLOBALS: {
-				builder.append(String::utf8(p_version->tessellation_eval_globals.get_data())); // control globals
 			} break;
 			case StageTemplate::Chunk::TYPE_CODE: {
 				if (p_version->code_sections.has(chunk.code)) {
@@ -525,30 +501,6 @@ RenderingServerTypes::ShaderNativeSourceCode ShaderGLES3::version_get_native_sou
 
 			source_code.versions.write[i].stages.push_back(stage);
 		}
-
-		//control stage
-		{
-			StringBuilder builder;
-			_build_variant_code(builder, i, version, STAGE_TYPE_TESSELATION_CONTROL, specialization_default_mask);
-
-			RenderingServerTypes::ShaderNativeSourceCode::Version::Stage stage;
-			stage.name = "tesselation_control";
-			stage.code = builder.as_string();
-
-			source_code.versions.write[i].stages.push_back(stage);
-		}
-
-		// eval stage
-		{
-			StringBuilder builder;
-			_build_variant_code(builder, i, version, STAGE_TYPE_TESSELATION_EVALUATION, specialization_default_mask);
-
-			RenderingServerTypes::ShaderNativeSourceCode::Version::Stage stage;
-			stage.name = "tesselation_evaluation";
-			stage.code = builder.as_string();
-
-			source_code.versions.write[i].stages.push_back(stage);
-		}
 	}
 
 	return source_code;
@@ -766,7 +718,7 @@ void ShaderGLES3::_initialize_version(Version *p_version) {
 	}
 }
 
-void ShaderGLES3::version_set_code(RID p_version, const HashMap<String, String> &p_code, const String &p_uniforms, const String &p_vertex_globals, const String &p_fragment_globals, const String &p_tesselation_control, const String &p_tessellation_eval, const Vector<String> &p_custom_defines, const LocalVector<ShaderGLES3::TextureUniformData> &p_texture_uniforms, bool p_initialize) {
+void ShaderGLES3::version_set_code(RID p_version, const HashMap<String, String> &p_code, const String &p_uniforms, const String &p_vertex_globals, const String &p_fragment_globals, const Vector<String> &p_custom_defines, const LocalVector<ShaderGLES3::TextureUniformData> &p_texture_uniforms, bool p_initialize) {
 	Version *version = version_owner.get_or_null(p_version);
 	ERR_FAIL_NULL(version);
 
@@ -774,8 +726,6 @@ void ShaderGLES3::version_set_code(RID p_version, const HashMap<String, String> 
 
 	version->vertex_globals = p_vertex_globals.utf8();
 	version->fragment_globals = p_fragment_globals.utf8();
-	version->tesselation_control_globals = p_tesselation_control.utf8();
-	version->tessellation_eval_globals = p_tessellation_eval.utf8();
 	version->uniforms = p_uniforms.utf8();
 	version->code_sections.clear();
 	version->texture_uniforms = p_texture_uniforms;

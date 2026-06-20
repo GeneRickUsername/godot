@@ -90,13 +90,10 @@ void SceneShaderForwardClustered::ShaderData::set_code(const String &p_code) {
 	int stencil_write_depth_faili = 0;
 	int stencil_comparei = STENCIL_COMPARE_ALWAYS;
 	int stencil_referencei = -1;
-	int patch_sizei = 3;
 
 	ShaderCompiler::IdentifierActions actions;
 	actions.entry_point_stages["vertex"] = ShaderCompiler::STAGE_VERTEX;
 	actions.entry_point_stages["fragment"] = ShaderCompiler::STAGE_FRAGMENT;
-	actions.entry_point_stages["tesselation_control"] = ShaderCompiler::STAGE_TESSELATION_CONTROL;
-	actions.entry_point_stages["tesselation_evaluation"] = ShaderCompiler::STAGE_TESSELATION_EVALUATION;
 	actions.entry_point_stages["light"] = ShaderCompiler::STAGE_FRAGMENT;
 
 	actions.render_mode_values["blend_add"] = Pair<int *, int>(&blend_mode, BLEND_MODE_ADD);
@@ -118,8 +115,6 @@ void SceneShaderForwardClustered::ShaderData::set_code(const String &p_code) {
 	actions.render_mode_values["cull_disabled"] = Pair<int *, int>(&cull_modei, RSE::CULL_MODE_DISABLED);
 	actions.render_mode_values["cull_front"] = Pair<int *, int>(&cull_modei, RSE::CULL_MODE_FRONT);
 	actions.render_mode_values["cull_back"] = Pair<int *, int>(&cull_modei, RSE::CULL_MODE_BACK);
-
-	actions.render_mode_values["patch_size"] = Pair<int *, int>(&patch_sizei, 0);
 
 	actions.render_mode_flags["unshaded"] = &unshaded;
 	actions.render_mode_flags["wireframe"] = &wireframe;
@@ -233,16 +228,11 @@ void SceneShaderForwardClustered::ShaderData::set_code(const String &p_code) {
 	print_line("\n**vertex_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX]);
 	print_line("\n**fragment_globals:\n" + gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT]);
 #endif
-	SceneShaderForwardClustered::singleton->shader.version_set_code(version, gen_code.code, gen_code.uniforms, gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX], gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT], gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_CONTROL], gen_code.stage_globals[ShaderCompiler::STAGE_TESSELATION_EVALUATION], gen_code.defines);
+	SceneShaderForwardClustered::singleton->shader.version_set_code(version, gen_code.code, gen_code.uniforms, gen_code.stage_globals[ShaderCompiler::STAGE_VERTEX], gen_code.stage_globals[ShaderCompiler::STAGE_FRAGMENT], gen_code.defines);
 
 	ubo_size = gen_code.uniform_total_size;
 	ubo_offsets = gen_code.uniform_offsets;
 	texture_uniforms = gen_code.texture_uniforms;
-
-	bool uses_tessellationi = gen_code.code.has("tesselation_control") || gen_code.code.has("tesselation_evaluation");
-
-	this->uses_tessellation = uses_tessellationi;
-	this->patch_size = patch_sizei;
 
 	pipeline_hash_map.clear_pipelines();
 
@@ -425,9 +415,7 @@ void SceneShaderForwardClustered::ShaderData::_create_pipeline(PipelineKey p_pip
 	bool emulate_point_size_flag = uses_point_size && SceneShaderForwardClustered::singleton->emulate_point_size;
 
 	RD::RenderPrimitive primitive_rd;
-	if (uses_tessellation) {
-        primitive_rd = RD::RENDER_PRIMITIVE_TESSELATION_PATCH;
-    } else if (uses_point_size) {
+	if (uses_point_size) {
 		primitive_rd = emulate_point_size_flag ? RD::RENDER_PRIMITIVE_TRIANGLES : RD::RENDER_PRIMITIVE_POINTS;
 	} else {
 		primitive_rd = primitive_rd_table[p_pipeline_key.primitive_type];
@@ -436,11 +424,7 @@ void SceneShaderForwardClustered::ShaderData::_create_pipeline(PipelineKey p_pip
 	RD::PipelineRasterizationState raster_state;
 	raster_state.cull_mode = p_pipeline_key.cull_mode;
 	raster_state.wireframe = wireframe || p_pipeline_key.wireframe;
-	if (uses_tessellation) {
-        raster_state.patch_control_points = patch_size; 
-    }
 
-	// print_line(vformat("Pipeline Creation - Tessellation Active: %s, Patch Size: %d", uses_tessellation ? "YES" : "NO", raster_state.patch_control_points));
 	RD::PipelineMultisampleState multisample_state;
 	multisample_state.sample_count = RD::get_singleton()->framebuffer_format_get_texture_samples(p_pipeline_key.framebuffer_format_id, 0);
 
@@ -515,9 +499,6 @@ void SceneShaderForwardClustered::ShaderData::_create_pipeline(PipelineKey p_pip
 	RID shader_rid = get_shader_variant(p_pipeline_key.version, p_pipeline_key.color_pass_flags, p_pipeline_key.ubershader);
 	ERR_FAIL_COND(shader_rid.is_null());
 
-	if (uses_tessellation && primitive_rd != RD::RENDER_PRIMITIVE_TESSELATION_PATCH) {
-		ERR_PRINT("Tessellation active but primitive type is wrong!");
-	}
 	RID pipeline = RD::get_singleton()->render_pipeline_create(shader_rid, p_pipeline_key.framebuffer_format_id, p_pipeline_key.vertex_format_id, primitive_rd, raster_state, multisample_state, depth_stencil_state, blend_state, 0, 0, specialization_constants);
 	ERR_FAIL_COND(pipeline.is_null());
 
@@ -876,25 +857,6 @@ void SceneShaderForwardClustered::init(const String p_defines) {
 		actions.render_mode_defines["cull_disabled"] = "#define DO_SIDE_CHECK\n";
 		actions.render_mode_defines["particle_trails"] = "#define USE_PARTICLE_TRAILS\n";
 		actions.render_mode_defines["depth_prepass_alpha"] = "#define USE_OPAQUE_PREPASS\n";
-
-		// tessellation
-		actions.renames["TESS_LEVEL_INNER"] = "gl_TessLevelInner";
-		actions.renames["TESS_LEVEL_OUTER"] = "gl_TessLevelOuter";
-		actions.renames["TESS_COORD"] = "gl_TessCoord";
-		actions.renames["TESS_IN_POSITION"] = "gl_in[gl_InvocationID].gl_Position";
-		actions.renames["TESS_OUT_POSITION"] = "gl_out[gl_InvocationID].gl_Position";
-		actions.renames["INVOCATION_ID"] = "gl_InvocationID";
-		actions.renames["TESS_NORMAL"] = "tess_normal_interp";
-		actions.renames["TESS_UV"] = "tess_uv_interp";
-		actions.renames["TESS_VERTEX"] = "tess_vertex_interp";
-
-		actions.usage_defines["TESS_LEVEL_INNER"] = "#define TESS_USED\n";
-		actions.usage_defines["TESS_LEVEL_OUTER"] = "#define TESS_USED\n";
-		actions.usage_defines["TESS_NORMAL"] = "#define NORMAL_USED\n";
-		actions.usage_defines["TESS_UV"] = "#define UV_USED\n";
-		actions.usage_defines["TESS_VERTEX"] = "#define UV_USED\n";
-
-		actions.render_mode_defines["tessellate"] = "#define USE_TESSELLATION\n";
 
 		bool force_lambert = GLOBAL_GET("rendering/shading/overrides/force_lambert_over_burley");
 
